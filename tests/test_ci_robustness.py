@@ -58,7 +58,9 @@ def test_gitattributes_protects_byte_exact_files():
 
 def _git(*args: str) -> "subprocess.CompletedProcess[str]":
     try:
-        proc = subprocess.run(["git", "-C", str(ROOT), *args], capture_output=True, encoding="utf-8")
+        # stdin 을 닫고 시간 상한을 둔다 — CI 에서 무언가를 기다리며 멈추면 job 상한(15분)까지 로그 없이 끌린다
+        proc = subprocess.run(["git", "-C", str(ROOT), *args], capture_output=True, encoding="utf-8",
+                              stdin=subprocess.DEVNULL, timeout=60)
     except (FileNotFoundError, PermissionError, OSError) as e:  # git 이 없거나 실행이 막힌 환경
         pytest.skip(f"git is not available: {e}")
     if proc.returncode != 0:
@@ -222,7 +224,7 @@ def _hostile_run(*args: str) -> "subprocess.CompletedProcess[bytes]":
            "PYTHONCOERCECLOCALE": "0", "FORCE_COLOR": "1"}
     # 출력은 바이트로 받아 직접 UTF-8 로 푼다 — 부모 프로세스의 로캘에 기대지 않는다
     return subprocess.run([sys.executable, "-X", "utf8=0", str(SCRIPT), *args], capture_output=True, env=env,
-                          cwd=str(ROOT), timeout=120)
+                          cwd=str(ROOT), stdin=subprocess.DEVNULL, timeout=120)
 
 
 def test_cli_under_ascii_locale_and_forced_colour():
@@ -240,3 +242,55 @@ def test_cli_under_ascii_locale_and_forced_colour():
                         "--target", "ko")
     assert proc.returncode == 2
     assert "오류:" in ANSI.sub("", proc.stderr.decode("utf-8"))
+
+
+# ⑨ 멈춤(hang) 방지 — 자식 프로세스는 stdin 을 닫고 시간 상한을 둔다 ---------------------------
+
+SUBPROCESS_CALLS = {"run", "Popen", "call", "check_call", "check_output"}
+
+
+def _unbounded_subprocess_calls(path: Path) -> list[str]:
+    """subprocess calls in the tests that could wait forever: no timeout, or stdin left open."""
+    found = []
+    for node in ast.walk(ast.parse(read(path), str(path))):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)):
+            continue
+        owner = node.func.value
+        if not (isinstance(owner, ast.Name) and owner.id == "subprocess" and node.func.attr in SUBPROCESS_CALLS):
+            continue
+        keywords = {k.arg for k in node.keywords}
+        if "timeout" not in keywords and node.func.attr != "Popen":
+            found.append(f"{path.name}:{node.lineno} no timeout")
+        if not keywords & {"stdin", "input"}:
+            found.append(f"{path.name}:{node.lineno} stdin not closed")
+    return found
+
+
+def test_child_processes_cannot_hang():
+    """A child that waits on stdin or never exits stalls the CI job until its timeout with no useful log."""
+    found = [hit for path in sorted((ROOT / "tests").glob("*.py")) for hit in _unbounded_subprocess_calls(path)]
+    assert found == [], "pass stdin=subprocess.DEVNULL and timeout=...: " + ", ".join(found)
+
+
+def _workflow_steps(ci: str) -> list[str]:
+    """Split ci.yml into step blocks (lines starting with `      - `) without a YAML parser."""
+    steps: list[str] = []
+    for line in ci.splitlines():
+        if line.startswith("      - "):
+            steps.append(line)
+        elif steps and line.startswith("        "):
+            steps[-1] += "\n" + line
+        elif not line.startswith("      "):
+            steps.append("")  # 다음 job·키로 넘어가면 블록을 끊는다
+    return [s for s in steps if s]
+
+
+def test_every_ci_command_step_has_a_timeout():
+    """Each `run:` step has its own timeout, and pytest dumps tracebacks when a test hangs."""
+    ci = read(ROOT / ".github" / "workflows" / "ci.yml")
+    run_steps = [s for s in _workflow_steps(ci) if "run:" in s]
+    assert run_steps, "no run steps found in ci.yml"
+    missing = [s.splitlines()[0].strip() for s in run_steps if "timeout-minutes:" not in s]
+    assert missing == [], f"add timeout-minutes to these steps: {missing}"
+    assert re.search(r"(?m)^faulthandler_timeout\s*=\s*\d+", read(ROOT / "pyproject.toml")), \
+        "set faulthandler_timeout in [tool.pytest.ini_options] so a hanging test prints where it hangs"

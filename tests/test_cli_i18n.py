@@ -136,7 +136,9 @@ def test_usage_errors_exit_2(cli):
 def test_real_process_smoke(tmp_path):
     env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"}
     proc = subprocess.run([sys.executable, str(SCRIPT), "check", str(EX / "sample.srt"), str(EX / "bad.ko.json"),
-                           "--target", "ko"], capture_output=True, encoding="utf-8", env=env)
+                           "--target", "ko"], capture_output=True, encoding="utf-8", env=env,
+                          stdin=subprocess.DEVNULL, timeout=120)
     assert proc.returncode == 1 and '"retry": ["1", "2", "3"]' in proc.stdout
-    proc = subprocess.run([sys.executable, str(SCRIPT), "--help"], capture_output=True, encoding="utf-8", env=env)
+    proc = subprocess.run([sys.executable, str(SCRIPT), "--help"], capture_output=True, encoding="utf-8", env=env,
+                          stdin=subprocess.DEVNULL, timeout=120)
     assert proc.returncode == 0 and "usage" in proc.stdout.lower()

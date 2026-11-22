@@ -20,9 +20,13 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python }}
+          # 의존성은 순수 파이썬 패키지 몇 개뿐이라 캐시 이득이 없다 — 시간 상한 밖에서 도는 캐시 저장(post) 단계를 없앤다
+          enable-cache: false
       # 실패했을 때 로그만으로 원인을 가를 수 있게: 버전·유니코드 DB·인코딩·픽스처 줄 끝
+      # 단계마다 시간 상한을 둔다 — 무언가를 기다리며 멈추면 job 상한까지 로그 없이 끌리지 않고 그 단계에서 끊긴다
       - name: diagnostics (versions, encodings, fixture line endings)
         continue-on-error: true
+        timeout-minutes: 3
         run: |
           uv --version
           git --version
@@ -30,13 +34,18 @@ jobs:
           git check-attr text -- tests/fixtures/bom_crlf.srt evals/fixtures/task-vtt-bytes/rich.vtt
           head -c 8 tests/fixtures/bom_crlf.srt | od -An -c
           uv run --no-project python -c "import sys, locale, unicodedata; print(sys.version); print('unicodedata', unicodedata.unidata_version); print('preferred encoding', locale.getpreferredencoding(False), 'utf8_mode', sys.flags.utf8_mode, 'stdout', sys.stdout.encoding)"
-      - run: uv sync --locked
-      - run: uv run pytest -q
+      - name: install the locked dev environment
+        timeout-minutes: 5
+        run: uv sync --locked
+      - name: tests
+        timeout-minutes: 5
+        run: uv run pytest -q </dev/null
       - name: every bundled script answers --help
+        timeout-minutes: 3
         run: |
           for f in skills/*/scripts/*.py; do
             case "$(basename "$f")" in _*) continue ;; esac
-            uv run python "$f" --help > /dev/null
+            uv run python "$f" --help > /dev/null < /dev/null
           done
   spec:
     runs-on: ubuntu-latest
@@ -44,13 +53,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: false
       - name: Agent Skills spec (skills-ref, pinned)
+        timeout-minutes: 5
         run: |
           for d in skills/*/; do
             uvx --from "git+https://github.com/agentskills/agentskills@83021e2be457a9b6679148719c1f6074f0ad975e#subdirectory=skills-ref" \
               skills-ref validate "$d"
           done
       - name: plugin manifests are valid JSON with matching names
+        timeout-minutes: 2
         run: |
           python3 - <<'PY'
           import json, pathlib
