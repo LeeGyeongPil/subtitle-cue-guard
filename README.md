@@ -25,7 +25,7 @@ It does not judge translation quality. A `suspect` finding is a guess, not proof
 /plugin install subtitle-cue-guard@subtitle-cue-guard-skill
 ```
 
-**Codex CLI and other agents that read the Agent Skills standard** — copy `skills/subtitle-cue-guard` into the agent's skills folder (for Codex, `.agents/skills/` in a project).
+**Other agents that read the Agent Skills standard** — copy `skills/subtitle-cue-guard` into the agent's skills folder. Only Claude Code is verified (see the table below).
 
 Requirements: Python 3.10 or newer (`python3 --version`). No packages, no network access. To run the development tests you also need [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`). Without agent: clone the repository and call the script directly, as in the examples below.
 
@@ -79,7 +79,7 @@ python3 skills/subtitle-cue-guard/scripts/cue_guard.py check examples/sample.srt
 python3 skills/subtitle-cue-guard/scripts/cue_guard.py extract examples/sample.srt --target ko --retry-from report.json --context 1 -o retry1.json
 ```
 
-`retry1.json` holds cues 1, 2 and 3 to translate, and cue 4 as read-only `context`. After the agent saves `tr.retry1.json`, check again with `check SRC tr.json tr.retry1.json` (later files overwrite earlier ones). The skill allows at most two rounds.
+`retry1.json` holds cues 1, 2 and 3 to translate, and cue 4 as read-only `context`. After the agent saves `tr.retry1.json`, check again with `check SRC tr.json tr.retry1.json` (later files overwrite earlier ones). The skill allows at most two rounds. An `unexpected_id` error is not in the retry list and later files cannot remove an id, so delete that id from `tr.json` yourself before checking again.
 
 ### 4. Assemble
 
@@ -147,12 +147,14 @@ Meanings: `skills/subtitle-cue-guard/references/issue-codes.md`.
 | Stays quiet when it should not | 12/12 |
 | Tasks solved with the skill | 6/6 |
 | Tasks solved without it (baseline) | 2/6 |
-| Mean score gain (Δ) | +0.51 |
+| Mean score gain (Δ) | +0.47 |
 | Tasks that catch a broken script | 5/6 |
-| Codex CLI | 6/6 tasks · verified |
+| Other agents (Codex CLI) | not verified · 0/6 tasks passed |
 
 Measured 2026-11-22 with Claude Code 2.1.322 · sonnet · 3 runs per case · codex-cli 0.154.0
 <!-- skill-eval:end -->
+
+The Codex CLI row means every run ended before the script ran (exit code 1), so it says nothing about the skill itself.
 
 ## How it works
 
@@ -188,7 +190,7 @@ It is the wrong tool for speech-to-text (use a transcription tool such as [Whisp
 uv sync && uv run pytest -q
 ```
 
-`evals/` holds trigger cases (should and should not start the skill) and six task cases with graders and fixtures; `tests/test_evals_manifest.py` checks that every grader matches the real script output.
+`evals/` holds trigger cases (should and should not start the skill) and six task cases with graders and fixtures; `tests/test_evals_manifest.py` checks that every grader matches the real script output. The only dev dependency is pytest. `.gitattributes` checks ordinary text files out with LF, and marks `*.srt`, `*.vtt` and the fixture folders `-text` so Git never converts their bytes (CRLF, BOM, missing final newline stay as written) on any OS checkout, and `tests/test_ci_robustness.py` guards that setup.
 
 ## License
 

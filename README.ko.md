@@ -25,7 +25,7 @@ AI 에이전트가 SRT·WebVTT 자막을 번역할 때 큐(자막 한 덩어리)
 /plugin install subtitle-cue-guard@subtitle-cue-guard-skill
 ```
 
-**Codex CLI 와 Agent Skills 표준을 읽는 다른 에이전트** — `skills/subtitle-cue-guard` 폴더를 에이전트의 스킬 폴더(Codex 는 프로젝트의 `.agents/skills/`)에 복사합니다.
+**Agent Skills 표준을 읽는 다른 에이전트** — `skills/subtitle-cue-guard` 폴더를 에이전트의 스킬 폴더에 복사합니다. 확인된 것은 Claude Code 뿐입니다(아래 "검증된 동작" 표 참고).
 
 필요한 것: Python 3.10 이상(`python3 --version`). 패키지도 네트워크도 필요 없습니다. 개발용 테스트를 돌리려면 [uv](https://docs.astral.sh/uv/)도 필요합니다(`curl -LsSf https://astral.sh/uv/install.sh | sh`). 에이전트 없이 쓰려면 레포를 받아 아래 예시처럼 스크립트를 직접 실행합니다.
 
@@ -79,7 +79,7 @@ python3 skills/subtitle-cue-guard/scripts/cue_guard.py check examples/sample.srt
 python3 skills/subtitle-cue-guard/scripts/cue_guard.py extract examples/sample.srt --target ko --retry-from report.json --context 1 -o retry1.json
 ```
 
-`retry1.json` 에는 번역할 큐 1·2·3 과 읽기 전용 `context` 인 큐 4 가 들어 있습니다. 에이전트가 `tr.retry1.json` 을 저장하면 `check SRC tr.json tr.retry1.json` 으로 다시 검사합니다(뒤 파일이 앞 파일을 덮어씀). 스킬은 최대 2회전까지만 허용합니다.
+`retry1.json` 에는 번역할 큐 1·2·3 과 읽기 전용 `context` 인 큐 4 가 들어 있습니다. 에이전트가 `tr.retry1.json` 을 저장하면 `check SRC tr.json tr.retry1.json` 으로 다시 검사합니다(뒤 파일이 앞 파일을 덮어씀). 스킬은 최대 2회전까지만 허용합니다. `unexpected_id` 오류는 다시 번역 목록에 없고 뒤 파일로는 id 를 지울 수 없으므로, 다시 검사하기 전에 `tr.json` 에서 그 id 를 직접 지웁니다.
 
 ### 4. 조립하기
 
@@ -147,12 +147,14 @@ grep -B1 -A2 00:57:32,544 retimed.srt
 | 필요 없을 때 안 불림 | 12/12 |
 | 스킬로 푼 작업 | 6/6 |
 | 스킬 없이 푼 작업(기준선) | 2/6 |
-| 평균 점수 차이(Δ) | +0.51 |
+| 평균 점수 차이(Δ) | +0.47 |
 | 가짜 스크립트를 잡아낸 비율 | 5/6 |
-| Codex CLI | 작업 6/6 통과 · 확인됨 |
+| 다른 에이전트(Codex CLI) | 미확인 · 작업 0/6 통과 |
 
 Claude Code 2.1.322 · sonnet · 케이스마다 3회 · 2026-11-22 측정 · codex-cli 0.154.0
 <!-- skill-eval:end -->
+
+Codex CLI 행은 모든 실행이 스크립트를 실행하기 전에 종료(종료 코드 1)됐다는 뜻이며 스킬 자체에 대한 결과가 아닙니다.
 
 ## 동작 원리
 
@@ -188,7 +190,7 @@ flowchart LR
 uv sync && uv run pytest -q
 ```
 
-`evals/` 에는 발동해야 하는·하지 말아야 하는 trigger 케이스와 채점기·픽스처가 있는 작업 케이스 6개가 있습니다. `tests/test_evals_manifest.py` 가 모든 채점 규칙이 실제 스크립트 출력에 맞는지 확인합니다.
+`evals/` 에는 발동해야 하는·하지 말아야 하는 trigger 케이스와 채점기·픽스처가 있는 작업 케이스 6개가 있습니다. `tests/test_evals_manifest.py` 가 모든 채점 규칙이 실제 스크립트 출력에 맞는지 확인합니다. 개발 의존성은 pytest 하나뿐입니다. `.gitattributes` 는 일반 텍스트 파일을 LF 로 체크아웃하고, `*.srt`·`*.vtt` 와 픽스처 폴더는 `-text` 로 표시해 Git 이 바이트(CRLF, BOM, 마지막 줄바꿈 없음)를 바꾸지 않게 하므로 어느 OS 체크아웃에서도 같게 동작하며, `tests/test_ci_robustness.py` 가 이 설정을 지킵니다.
 
 ## 라이선스
 
