@@ -63,6 +63,8 @@ python3 skills/subtitle-cue-guard/scripts/cue_guard.py check examples/sample.srt
 
 The output is the first screenshot above. Exit code 0 means no problem, 1 means the `retry` list names cues to redo, 2 means the input could not be read.
 
+The command above prints in your language; the screenshots were taken with `--lang en`, so add `--lang en` to see identical text.
+
 Every cue ID can be present and the text can still be in the wrong cue. This is the second case:
 
 ```
@@ -147,11 +149,11 @@ Meanings: `skills/subtitle-cue-guard/references/issue-codes.md`.
 | Stays quiet when it should not | 12/12 |
 | Tasks solved with the skill | 6/6 |
 | Tasks solved without it (baseline) | 2/6 |
-| Mean score gain (Δ) | +0.47 |
+| Mean score gain (Δ) | +0.49 |
 | Tasks that catch a broken script | 5/6 |
 | Codex CLI | not verified |
 
-Measured 2026-11-22 with Claude Code 2.1.322 · sonnet · 3 runs per case · codex-cli 0.154.0
+Measured 2026-11-23 with Claude Code 2.1.322 · sonnet · 3 runs per case · codex-cli 0.154.0
 <!-- skill-eval:end -->
 
 ## How it works

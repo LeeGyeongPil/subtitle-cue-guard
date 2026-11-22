@@ -3,6 +3,16 @@
 All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.1.2] - 2026-11-23
+
+### Changed
+- CI robustness: every workflow step has `timeout-minutes`, the `setup-uv` cache is off, test subprocesses close stdin and have a timeout, and `faulthandler_timeout = 120` prints stack traces if a test hangs. New tests guard these settings.
+- README: the example command prints in your language; the screenshots use `--lang en` (English README) or `--lang ko` (Korean README). Eval table refreshed with the latest measurement.
+
+### Known limits
+- `uv run pytest -q` doubles the `-q` from pyproject, so no "N passed" summary line prints (check the exit code).
+- The `task-fps-retime` eval also passes without the skill, so it does not measure the script's value.
+
 ## [0.1.1] - 2026-11-23
 
 ### Changed
