@@ -1,0 +1,12 @@
+{
+  "name": "subtitle-cue-guard-skill",
+  "owner": { "name": "LeeGyeongPil" },
+  "description": "Translate SRT/WebVTT subtitles with an LLM without breaking cue alignment.",
+  "plugins": [
+    {
+      "name": "subtitle-cue-guard",
+      "source": "./",
+      "description": "Extract numbered cue text, check translations for missing, merged, shifted or untranslated cues, retranslate only the bad ones and reassemble onto the original timings."
+    }
+  ]
+}
