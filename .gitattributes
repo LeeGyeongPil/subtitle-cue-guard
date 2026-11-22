@@ -1,0 +1,12 @@
+# Line-ending policy: text files are stored and checked out with LF on every OS.
+* text=auto eol=lf
+
+# Subtitle files and test/eval fixtures are byte-exact on purpose (UTF-8 BOM, CRLF,
+# a missing final newline). Git must never convert them, whatever core.autocrlf says.
+*.srt -text
+*.vtt -text
+tests/fixtures/** -text
+evals/fixtures/** -text
+
+# Screenshots
+*.png binary

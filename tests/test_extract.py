@@ -96,7 +96,7 @@ def test_text_format_and_output_file(tmp_path, cli):
     assert code == 0 and "[batch 1]" in out and "2: ⟦1⟧Wait.⟦2⟧" in out
     target = tmp_path / "b.json"
     code, out, _ = cli("extract", EX / "sample.srt", "--target", "ko", "-o", target)
-    assert code == 0 and json.loads(target.read_text())["tool"] == "subtitle-cue-guard" and "wrote" in out
+    assert code == 0 and json.loads(target.read_text(encoding="utf-8"))["tool"] == "subtitle-cue-guard" and "wrote" in out
 
 
 def test_retry_report_round_trip_with_check(tmp_path, cli):

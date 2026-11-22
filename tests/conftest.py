@@ -25,6 +25,11 @@ def clean_env(monkeypatch):
     for key in ("LC_ALL", "LC_MESSAGES", "SUBTITLE_CUE_GUARD_LANG"):
         monkeypatch.delenv(key, raising=False)
     monkeypatch.setenv("LANG", "en_US.UTF-8")
+    # Python 3.14 의 argparse 는 색을 기본으로 켠다 — CI 러너의 FORCE_COLOR 등에 따라
+    # 도움말·오류 문구에 ANSI 코드가 섞이지 않도록 테스트 안에서는 색을 끈다
+    for key in ("FORCE_COLOR", "PYTHON_COLORS"):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("NO_COLOR", "1")
 
 
 @pytest.fixture

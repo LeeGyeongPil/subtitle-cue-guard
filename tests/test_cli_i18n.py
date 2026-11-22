@@ -77,7 +77,7 @@ def test_report_codes_do_not_depend_on_language(cli):
 
 @pytest.fixture
 def broken(tmp_path):
-    return write(tmp_path / "broken.srt", (FIX / "broken.srt").read_text())
+    return write(tmp_path / "broken.srt", (FIX / "broken.srt").read_text(encoding="utf-8"))
 
 
 def test_error_exit_codes_and_messages(tmp_path, cli, broken):
@@ -136,7 +136,7 @@ def test_usage_errors_exit_2(cli):
 def test_real_process_smoke(tmp_path):
     env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"}
     proc = subprocess.run([sys.executable, str(SCRIPT), "check", str(EX / "sample.srt"), str(EX / "bad.ko.json"),
-                           "--target", "ko"], capture_output=True, text=True, env=env)
+                           "--target", "ko"], capture_output=True, encoding="utf-8", env=env)
     assert proc.returncode == 1 and '"retry": ["1", "2", "3"]' in proc.stdout
-    proc = subprocess.run([sys.executable, str(SCRIPT), "--help"], capture_output=True, text=True, env=env)
+    proc = subprocess.run([sys.executable, str(SCRIPT), "--help"], capture_output=True, encoding="utf-8", env=env)
     assert proc.returncode == 0 and "usage" in proc.stdout.lower()

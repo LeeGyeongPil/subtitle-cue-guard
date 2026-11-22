@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 
 import pytest
 
@@ -9,7 +10,7 @@ from conftest import EX, FIX, cg, write
 
 
 def timings(path):
-    return re.findall(r"^(\S+) --> (\S+)", path.read_text(), re.M)
+    return re.findall(r"^(\S+) --> (\S+)", path.read_text(encoding="utf-8"), re.M)
 
 
 def retime(cli, tmp_path, src, *args, name="out.srt"):
@@ -70,12 +71,12 @@ def test_min_gap_shortens_overlapping_end(tmp_path, cli):
 def test_vtt_settings_and_short_form_preserved(tmp_path, cli):
     code, out, _, _ = retime(cli, tmp_path, FIX / "rich.vtt", "--shift", "+1s", name="o.vtt")
     assert code == 0
-    text = out.read_text()
+    text = out.read_text(encoding="utf-8")
     assert "00:02.000 --> 00:04.500 align:start line:10%" in text
     assert "00:04.600 --> 00:06.000 region:top" in text
     assert "NOTE\nTranslator note: keep names." in text and "<v Anna>" in text
     _, out, _, _ = retime(cli, tmp_path, FIX / "rich.vtt", "--shift", "+3599s", name="o2.vtt")
-    assert "01:00:00.000 --> 01:00:02.500 align:start line:10%" in out.read_text()
+    assert "01:00:00.000 --> 01:00:02.500 align:start line:10%" in out.read_text(encoding="utf-8")
 
 
 def test_unchanged_times_keep_bytes(tmp_path, cli):
@@ -119,7 +120,7 @@ def test_retime_refuses_to_overwrite_input(tmp_path, cli):
     src = write(tmp_path / "s.srt", "1\n00:00:01,000 --> 00:00:02,000\nHello\n")
     code, _, err = cli("retime", src, "--shift", "1s", "-o", src)
     assert code == 2 and "is also an input file" in err
-    assert src and open(src).read().startswith("1\n00:00:01,000")
+    assert src and Path(src).read_text(encoding="utf-8").startswith("1\n00:00:01,000")
 
 
 def test_fps_helpers():

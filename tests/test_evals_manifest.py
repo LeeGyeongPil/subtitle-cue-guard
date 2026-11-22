@@ -45,12 +45,12 @@ def test_eval_set_composition():
     for case in trig:
         text = body(case)
         assert NAME not in text and not re.search(r"\bskill\b|스킬", text, re.I), case.name
-        assert "tool: Skill" in (case / "graders" / "skill-fired.md").read_text()
+        assert "tool: Skill" in (case / "graders" / "skill-fired.md").read_text(encoding="utf-8")
     for case in notrig:
-        assert "max: 0" in (case / "graders" / "skill-not-fired.md").read_text()
+        assert "max: 0" in (case / "graders" / "skill-not-fired.md").read_text(encoding="utf-8")
     for case in tasks:
         assert (EVALS / "fixtures" / case.name).is_dir(), case.name
-        assert "with-only" in (case / "graders" / "script-ran.md").read_text()
+        assert "with-only" in (case / "graders" / "script-ran.md").read_text(encoding="utf-8")
         assert list((case / "graders").glob("value-*.md")), case.name
 
 

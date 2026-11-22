@@ -24,12 +24,12 @@ def test_identity_roundtrip_byte_exact(path, tmp_path, cli):
 
 
 def test_parser_handles_odd_files():
-    dup = cg.parse_subtitle((FIX / "dup_numbers.srt").read_text(), "dup")
+    dup = cg.parse_subtitle((FIX / "dup_numbers.srt").read_text(encoding="utf-8"), "dup")
     assert [c.id for c in dup.cues] == ["1", "2", "3"]  # ids are positions, not the numbers in the file
     assert dup.cues[1].text == "Second line\nwith two rows."
-    hours = cg.parse_subtitle((FIX / "long_hours.srt").read_text(), "h")
+    hours = cg.parse_subtitle((FIX / "long_hours.srt").read_text(encoding="utf-8"), "h")
     assert hours.cues[1].start == (103 * 3600 + 30 * 60) * 1000 + 500
-    vtt = cg.parse_subtitle((FIX / "rich.vtt").read_text(), "r")
+    vtt = cg.parse_subtitle((FIX / "rich.vtt").read_text(encoding="utf-8"), "r")
     assert vtt.fmt == "vtt" and len(vtt.cues) == 3
     assert vtt.cues[0].start == 1000 and vtt.cues[0].rest == " align:start line:10%"
     crlf = cg.parse_subtitle((FIX / "bom_crlf.srt").read_bytes().decode("utf-8"), "c")
@@ -57,8 +57,8 @@ def test_assemble_changes_only_text_lines(tmp_path, cli):
     out = tmp_path / "out.vtt"
     code, _, _ = cli("assemble", src, tr, "--target", "ko", "-o", out)
     assert code == 0
-    before = src.read_text().split("\n")
-    after = out.read_text().split("\n")
+    before = src.read_text(encoding="utf-8").split("\n")
+    after = out.read_text(encoding="utf-8").split("\n")
     changed_before = {i for i, line in enumerate(before) if line not in after}
     # header, STYLE, REGION, NOTE, ids, timing lines and settings are untouched
     for keep in ("WEBVTT - sample", "Kind: captions", "STYLE", "::cue { color: lime }", "REGION", "id:top",
@@ -96,11 +96,11 @@ def test_assemble_refuse_and_fallback(tmp_path, cli):
     code, stdout, _ = cli("assemble", src, bad, "--target", "ko", "--fallback", "source", "-o", out, "--report", report)
     result = json.loads(stdout)
     assert code == 0 and result["written"] is True and result["fallback"] == ["1", "2", "3"]
-    text = out.read_text()
+    text = out.read_text(encoding="utf-8")
     assert "I never said\nthat he was here." in text  # cue 1 kept its source text
     assert "<i>Wait.</i>" in text and "{\\an8}Where are you going?" in text
     assert "역으로, 9시에." in text  # cue 4 was fine and is translated
-    rep = json.loads(report.read_text())
+    rep = json.loads(report.read_text(encoding="utf-8"))
     assert rep["fallback"] == ["1", "2", "3"] and rep["written"] is True
     code, text_out, _ = cli("assemble", src, bad, "--target", "ko", "--format", "text", "-o", out)
     assert code == 1 and "1, 2, 3" in text_out
@@ -116,7 +116,7 @@ def test_assemble_refuses_unexpected_id_and_never_overwrites(tmp_path, cli):
     code, _, err = cli("assemble", src, tr, "-o", src)
     assert code == 2 and "is also an input file" in err
     code, _, _ = cli("assemble", src, tr, "--fallback", "source", "-o", out)
-    assert code == 0 and "안녕" in out.read_text()
+    assert code == 0 and "안녕" in out.read_text(encoding="utf-8")
 
 
 def test_overlay_retry_files(tmp_path, cli):
@@ -128,7 +128,7 @@ def test_overlay_retry_files(tmp_path, cli):
     assert code == 0, stdout
     out = tmp_path / "o.srt"
     assert cli("assemble", src, first, retry, "--target", "ko", "-o", out)[0] == 0
-    assert out.read_text() == (EX / "sample.srt").read_text().replace(
+    assert out.read_text(encoding="utf-8") == (EX / "sample.srt").read_text(encoding="utf-8").replace(
         "I never said\nthat he was here.", "그가 여기 있었다고는\n말 안 했어.").replace(
         "<i>Wait.</i>", "<i>잠깐.</i>").replace("{\\an8}Where are you going?", "{\\an8}어디 가?").replace(
         "To the station, at 9 o'clock.", "역에, 9시에.")
@@ -139,7 +139,7 @@ def test_bilingual_and_renumber(tmp_path, cli):
     tr = jwrite(tmp_path / "t.json", {"1": "첫 줄.", "2": "둘째 줄,\n두 행.", "3": "셋째 줄."})
     out = tmp_path / "o.srt"
     assert cli("assemble", src, tr, "--bilingual", "--renumber", "-o", out)[0] == 0
-    text = out.read_text()
+    text = out.read_text(encoding="utf-8")
     assert text.startswith("1\n00:00:01,000 --> 00:00:02,500\nFirst line.\n첫 줄.\n")
     assert "\n2\n00:00:03,000" in text and "\n3\n00:00:05,000" in text
     assert "Second line\nwith two rows.\n둘째 줄,\n두 행.\n" in text
@@ -148,7 +148,7 @@ def test_bilingual_and_renumber(tmp_path, cli):
     write(nonum, "00:00:01,000 --> 00:00:02,000\nHello there\n")
     out2 = tmp_path / "o2.srt"
     assert cli("assemble", nonum, jwrite(tmp_path / "t2.json", {"1": "안녕"}), "--renumber", "-o", out2)[0] == 0
-    assert out2.read_text() == "1\n00:00:01,000 --> 00:00:02,000\n안녕\n"
+    assert out2.read_text(encoding="utf-8") == "1\n00:00:01,000 --> 00:00:02,000\n안녕\n"
 
 
 def test_cue_without_text_and_without_final_newline(tmp_path, cli):
@@ -157,7 +157,7 @@ def test_cue_without_text_and_without_final_newline(tmp_path, cli):
     out = tmp_path / "o.srt"
     tr = jwrite(tmp_path / "t.json", {"1": "안녕"})
     assert cli("assemble", src, tr, "-o", out)[0] == 0
-    assert out.read_text() == "1\n00:00:01,000 --> 00:00:02,000\n안녕"
+    assert out.read_text(encoding="utf-8") == "1\n00:00:01,000 --> 00:00:02,000\n안녕"
 
 
 def test_translation_text_is_sanitized(tmp_path, cli):
@@ -166,4 +166,4 @@ def test_translation_text_is_sanitized(tmp_path, cli):
     tr = jwrite(tmp_path / "t.json", {"1": "\n안녕  \n\n  하세요 --> \n"})
     out = tmp_path / "o.srt"
     assert cli("assemble", src, tr, "-o", out)[0] == 0
-    assert out.read_text() == "1\n00:00:01,000 --> 00:00:02,000\n안녕\n하세요 ->\n"
+    assert out.read_text(encoding="utf-8") == "1\n00:00:01,000 --> 00:00:02,000\n안녕\n하세요 ->\n"

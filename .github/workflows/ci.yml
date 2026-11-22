@@ -10,6 +10,7 @@ on:
 jobs:
   scripts:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -19,6 +20,16 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python }}
+      # 실패했을 때 로그만으로 원인을 가를 수 있게: 버전·유니코드 DB·인코딩·픽스처 줄 끝
+      - name: diagnostics (versions, encodings, fixture line endings)
+        continue-on-error: true
+        run: |
+          uv --version
+          git --version
+          git ls-files --eol -- tests/fixtures/bom_crlf.srt evals/fixtures/task-vtt-bytes/rich.vtt
+          git check-attr text -- tests/fixtures/bom_crlf.srt evals/fixtures/task-vtt-bytes/rich.vtt
+          head -c 8 tests/fixtures/bom_crlf.srt | od -An -c
+          uv run --no-project python -c "import sys, locale, unicodedata; print(sys.version); print('unicodedata', unicodedata.unidata_version); print('preferred encoding', locale.getpreferredencoding(False), 'utf8_mode', sys.flags.utf8_mode, 'stdout', sys.stdout.encoding)"
       - run: uv sync --locked
       - run: uv run pytest -q
       - name: every bundled script answers --help
@@ -29,6 +40,7 @@ jobs:
           done
   spec:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -42,9 +54,9 @@ jobs:
         run: |
           python3 - <<'PY'
           import json, pathlib
-          plugin = json.loads(pathlib.Path(".claude-plugin/plugin.json").read_text())
-          market = json.loads(pathlib.Path(".claude-plugin/marketplace.json").read_text())
-          skills = [p.name for p in pathlib.Path("skills").iterdir() if p.is_dir()]
+          plugin = json.loads(pathlib.Path(".claude-plugin/plugin.json").read_text(encoding="utf-8"))
+          market = json.loads(pathlib.Path(".claude-plugin/marketplace.json").read_text(encoding="utf-8"))
+          skills = sorted(p.name for p in pathlib.Path("skills").iterdir() if p.is_dir())
           assert skills == [plugin["name"]], (skills, plugin["name"])
           assert [p["name"] for p in market["plugins"]] == [plugin["name"]]
           print("manifests ok:", plugin["name"], plugin["version"])

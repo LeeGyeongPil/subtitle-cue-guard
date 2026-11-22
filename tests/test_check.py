@@ -215,7 +215,7 @@ def test_translation_inputs(tmp_path, cli):
                                       {"id": 2, "translation": "<i>잠깐.</i>"},
                                       {"id": "3", "text": "{\\an8}어디 가?"}, {"id": "4", "text": "역에, 9시에."}])
     assert run_check(cli, src, arr)[0] == 0
-    good = write(tmp_path / "t.ko.srt", (EX / "sample.srt").read_text()
+    good = write(tmp_path / "t.ko.srt", (EX / "sample.srt").read_text(encoding="utf-8")
                  .replace("I never said\nthat he was here.", "그가 여기 있었다고는\n말 안 했어.")
                  .replace("To the station, at 9 o'clock.", "역에, 9시에.")
                  .replace("Where are you going?", "어디 가?").replace("Wait.", "잠깐."))
@@ -274,6 +274,6 @@ def test_check_writes_output_file(tmp_path, cli):
     target = tmp_path / "r.json"
     code, out, _ = cli("check", EX / "sample.srt", EX / "bad.ko.json", "--target", "ko", "-o", target)
     assert code == 1 and "retry: 1, 2, 3" in out
-    assert json.loads(target.read_text())["retry"] == ["1", "2", "3"]
+    assert json.loads(target.read_text(encoding="utf-8"))["retry"] == ["1", "2", "3"]
     code, out, _ = cli("check", EX / "sample.srt", EX / "good.ko.json", "--target", "ko", "-o", target)
     assert code == 0 and "wrote" in out
