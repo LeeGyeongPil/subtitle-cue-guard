@@ -3,6 +3,12 @@
 All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] - 2026-11-23
+
+### Changed
+- README: how to remove an `unexpected_id` before re-checking, and why the Codex CLI row is not verified.
+- CI: line-ending policy in `.gitattributes` (byte-exact CRLF/BOM fixtures are `-text`), pytest-only dev dependencies, tests that pass under a non-UTF-8 locale and forced colour on Python 3.10–3.14.
+
 ## [0.1.0] - 2026-11-22
 
 ### Added
