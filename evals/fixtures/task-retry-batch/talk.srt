@@ -1,0 +1,95 @@
+1
+00:00:02,000 --> 00:00:03,000
+Cue number 1 of the talk.
+
+2
+00:00:04,000 --> 00:00:05,000
+Cue number 2 of the talk.
+
+3
+00:00:06,000 --> 00:00:07,000
+Cue number 3 of the talk.
+
+4
+00:00:08,000 --> 00:00:09,000
+Cue number 4 of the talk.
+
+5
+00:00:10,000 --> 00:00:11,000
+Cue number 5 of the talk.
+
+6
+00:00:12,000 --> 00:00:13,000
+Cue number 6 of the talk.
+
+7
+00:00:14,000 --> 00:00:15,000
+Cue number 7 of the talk.
+
+8
+00:00:16,000 --> 00:00:17,000
+Cue number 8 of the talk.
+
+9
+00:00:18,000 --> 00:00:19,000
+Cue number 9 of the talk.
+
+10
+00:00:20,000 --> 00:00:21,000
+Cue number 10 of the talk.
+
+11
+00:00:22,000 --> 00:00:23,000
+Cue number 11 of the talk.
+
+12
+00:00:24,000 --> 00:00:25,000
+Cue number 12 of the talk.
+
+13
+00:00:26,000 --> 00:00:27,000
+Cue number 13 of the talk.
+
+14
+00:00:28,000 --> 00:00:29,000
+Cue number 14 of the talk.
+
+15
+00:00:30,000 --> 00:00:31,000
+Cue number 15 of the talk.
+
+16
+00:00:32,000 --> 00:00:33,000
+Cue number 16 of the talk.
+
+17
+00:00:34,000 --> 00:00:35,000
+Cue number 17 of the talk.
+
+18
+00:00:36,000 --> 00:00:37,000
+Cue number 18 of the talk.
+
+19
+00:00:38,000 --> 00:00:39,000
+Cue number 19 of the talk.
+
+20
+00:00:40,000 --> 00:00:41,000
+Cue number 20 of the talk.
+
+21
+00:00:42,000 --> 00:00:43,000
+Cue number 21 of the talk.
+
+22
+00:00:44,000 --> 00:00:45,000
+Cue number 22 of the talk.
+
+23
+00:00:46,000 --> 00:00:47,000
+Cue number 23 of the talk.
+
+24
+00:00:48,000 --> 00:00:49,000
+Cue number 24 of the talk.

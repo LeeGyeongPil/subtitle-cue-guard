@@ -1,0 +1,25 @@
+﻿WEBVTT - sample
+Kind: captions
+Language: en
+
+STYLE
+::cue { color: lime }
+
+REGION
+id:top
+width:40%
+
+NOTE
+Translator note: keep names.
+
+intro
+00:01.000 --> 00:03.500 align:start line:10%
+<v Anna>I never said
+that he was here.</v>
+
+00:03.600 --> 00:05.000 region:top
+<c.yellow>Wait.</c.yellow>
+
+2
+00:05.200 --> 00:07.000
+Where are you going?

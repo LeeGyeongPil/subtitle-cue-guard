@@ -1,0 +1,12 @@
+﻿1
+00:00:01,000 --> 00:00:03,000
+<i>Good morning.</i>
+How are you today?
+
+2
+00:00:03,500 --> 00:00:05,000
+I am fine, thanks.
+
+3
+00:00:05,500 --> 00:00:08,000
+The meeting starts at 10:30.
