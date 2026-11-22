@@ -154,8 +154,6 @@ grep -B1 -A2 00:57:32,544 retimed.srt
 Claude Code 2.1.322 · sonnet · 케이스마다 3회 · 2026-11-22 측정 · codex-cli 0.154.0
 <!-- skill-eval:end -->
 
-Codex CLI 행은 모든 실행이 스크립트를 실행하기 전에 종료(종료 코드 1)됐다는 뜻이며 스킬 자체에 대한 결과가 아닙니다.
-
 ## 동작 원리
 
 ```mermaid

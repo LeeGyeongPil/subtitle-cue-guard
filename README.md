@@ -154,8 +154,6 @@ Meanings: `skills/subtitle-cue-guard/references/issue-codes.md`.
 Measured 2026-11-22 with Claude Code 2.1.322 · sonnet · 3 runs per case · codex-cli 0.154.0
 <!-- skill-eval:end -->
 
-The Codex CLI row means every run ended before the script ran (exit code 1), so it says nothing about the skill itself.
-
 ## How it works
 
 ```mermaid
