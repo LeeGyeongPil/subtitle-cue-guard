@@ -1,6 +1,6 @@
 {
   "name": "subtitle-cue-guard",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Agent skill that keeps SRT/WebVTT cues aligned when an LLM translates subtitles: extract numbered text, check translations deterministically, retranslate only the failing cues, reassemble onto the original timings byte-for-byte.",
   "author": { "name": "LeeGyeongPil" },
   "license": "MIT",

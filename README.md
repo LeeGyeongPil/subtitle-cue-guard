@@ -150,10 +150,10 @@ Meanings: `skills/subtitle-cue-guard/references/issue-codes.md`.
 | Tasks solved with the skill | 6/6 |
 | Tasks solved without it (baseline) | 2/6 |
 | Mean score gain (Δ) | +0.47 |
-| Tasks that catch a broken script | 5/6 |
+| Tasks that catch a broken script | 6/6 |
 | Codex CLI | not verified |
 
-Measured 2026-11-23 with Claude Code 2.1.322 · sonnet · 3 runs per case · codex-cli 0.154.0
+Measured 2026-11-24 with Claude Code 2.1.322 · sonnet · 3 runs per case · codex-cli 0.154.0
 <!-- skill-eval:end -->
 
 ## How it works
