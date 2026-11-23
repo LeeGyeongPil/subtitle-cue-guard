@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -20,11 +21,22 @@ sys.modules["cue_guard"] = cg
 _spec.loader.exec_module(cg)
 
 
+def child_env(**extra: str) -> dict:
+    """Minimal environment for a child process: only what the OS needs to start Python, plus `extra`.
+
+    Nothing else leaks in from the runner (locale, colour and proxy variables), so a child behaves the same
+    on a laptop and on CI. Pass the variables a test cares about as keyword arguments.
+    """
+    env = {k: os.environ[k] for k in ("PATH", "SYSTEMROOT", "TMPDIR", "TEMP", "TMP") if k in os.environ}
+    env.update(extra)
+    return env
+
+
 @pytest.fixture(autouse=True)
 def clean_env(monkeypatch):
     for key in ("LC_ALL", "LC_MESSAGES", "SUBTITLE_CUE_GUARD_LANG"):
         monkeypatch.delenv(key, raising=False)
-    monkeypatch.setenv("LANG", "en_US.UTF-8")
+    monkeypatch.setenv("LANG", "en_GB.UTF-8")
     # Python 3.14 의 argparse 는 색을 기본으로 켠다 — CI 러너의 FORCE_COLOR 등에 따라
     # 도움말·오류 문구에 ANSI 코드가 섞이지 않도록 테스트 안에서는 색을 끈다
     for key in ("FORCE_COLOR", "PYTHON_COLORS"):

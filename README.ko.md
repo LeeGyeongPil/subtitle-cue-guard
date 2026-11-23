@@ -27,7 +27,7 @@ AI 에이전트가 SRT·WebVTT 자막을 번역할 때 큐(자막 한 덩어리)
 
 **Agent Skills 표준을 읽는 다른 에이전트** — `skills/subtitle-cue-guard` 폴더를 에이전트의 스킬 폴더에 복사합니다. 확인된 것은 Claude Code 뿐입니다(아래 "검증된 동작" 표 참고).
 
-필요한 것: Python 3.10 이상(`python3 --version`). 패키지도 네트워크도 필요 없습니다. 개발용 테스트를 돌리려면 [uv](https://docs.astral.sh/uv/)도 필요합니다(`curl -LsSf https://astral.sh/uv/install.sh | sh`). 에이전트 없이 쓰려면 레포를 받아 아래 예시처럼 스크립트를 직접 실행합니다.
+필요한 것: Python 3.10 이상(`python3 --version`). 패키지도 네트워크도 필요 없습니다. 개발용 테스트를 돌리려면 [pytest](https://docs.pytest.org/)도 필요합니다(`uv sync` 로 설치됩니다. uv 는 `curl -LsSf https://astral.sh/uv/install.sh | sh`). 에이전트 없이 쓰려면 레포를 받아 아래 예시처럼 스크립트를 직접 실행합니다.
 
 ```
 git clone https://github.com/LeeGyeongPil/subtitle-cue-guard
@@ -149,7 +149,7 @@ grep -B1 -A2 00:57:32,544 retimed.srt
 | 필요 없을 때 안 불림 | 12/12 |
 | 스킬로 푼 작업 | 6/6 |
 | 스킬 없이 푼 작업(기준선) | 2/6 |
-| 평균 점수 차이(Δ) | +0.49 |
+| 평균 점수 차이(Δ) | +0.47 |
 | 가짜 스크립트를 잡아낸 비율 | 5/6 |
 | Codex CLI | 미검증 |
 
@@ -187,10 +187,10 @@ flowchart LR
 ## 개발
 
 ```
-uv sync && uv run pytest -q
+uv sync && uv run pytest -q   # CI installs pytest with pip instead
 ```
 
-`evals/` 에는 발동해야 하는·하지 말아야 하는 trigger 케이스와 채점기·픽스처가 있는 작업 케이스 6개가 있습니다. `tests/test_evals_manifest.py` 가 모든 채점 규칙이 실제 스크립트 출력에 맞는지 확인합니다. 개발 의존성은 pytest 하나뿐입니다. `.gitattributes` 는 일반 텍스트 파일을 LF 로 체크아웃하고, `*.srt`·`*.vtt` 와 픽스처 폴더는 `-text` 로 표시해 Git 이 바이트(CRLF, BOM, 마지막 줄바꿈 없음)를 바꾸지 않게 하므로 어느 OS 체크아웃에서도 같게 동작하며, `tests/test_ci_robustness.py` 가 이 설정을 지킵니다.
+`evals/` 에는 발동해야 하는·하지 말아야 하는 trigger 케이스와 채점기·픽스처가 있는 작업 케이스 6개가 있습니다. `tests/test_evals_manifest.py` 가 모든 채점 규칙이 실제 스크립트 출력에 맞는지 확인합니다. 개발 의존성은 pytest 하나뿐입니다. CI(`.github/workflows/ci.yml`)는 pip 으로 설치한 pytest 로 파이썬 3.10 과 3.14 에서 이 테스트를 돌립니다. `.gitattributes` 는 일반 텍스트 파일을 LF 로 체크아웃하고, `*.srt`·`*.vtt` 와 픽스처 폴더는 `-text` 로 표시해 Git 이 바이트(CRLF, BOM, 마지막 줄바꿈 없음)를 바꾸지 않게 하므로 어느 OS 체크아웃에서도 같게 동작하며, `tests/test_ci_robustness.py` 가 이 설정을 지킵니다.
 
 ## 라이선스
 

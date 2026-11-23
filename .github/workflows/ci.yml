@@ -1,76 +1,46 @@
-# 에이전트 스킬 레포 CI — 모델 호출 없이: 스킬 규격(Agent Skills 표준 검증기) + 플러그인 매니페스트 + 번들 스크립트 테스트.
-# 실측 평가(발동·효과·Codex)는 공개 전에 하네스가 따로 돌리고 README 검증 표에 남긴다.
+# Minimal CI for the agent skill: one job, two official actions, pytest from pip.
+# No model calls. The measured evals run before release and are recorded in the README.
+# The Agent Skills frontmatter rules are mirrored offline in tests/test_ci_robustness.py.
 name: ci
 on:
   push:
   pull_request:
-  schedule:
-    - cron: "17 3 * * 1"   # 매주 월요일 — 런타임·검증기가 바뀌어 깨지지 않았는지 정기 확인
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  scripts:
-    runs-on: ubuntu-latest
+  test:
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.10", "3.12", "3.14"]
+        python: ["3.10", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
-          # 의존성은 순수 파이썬 패키지 몇 개뿐이라 캐시 이득이 없다 — 시간 상한 밖에서 도는 캐시 저장(post) 단계를 없앤다
-          enable-cache: false
-      # 실패했을 때 로그만으로 원인을 가를 수 있게: 버전·유니코드 DB·인코딩·픽스처 줄 끝
-      # 단계마다 시간 상한을 둔다 — 무언가를 기다리며 멈추면 job 상한까지 로그 없이 끌리지 않고 그 단계에서 끊긴다
+      # Every command step has its own time limit, so a stall ends at that step with a log
+      # instead of at the job limit with none.
       - name: diagnostics (versions, encodings, fixture line endings)
         continue-on-error: true
         timeout-minutes: 3
         run: |
-          uv --version
+          python --version
           git --version
           git ls-files --eol -- tests/fixtures/bom_crlf.srt evals/fixtures/task-vtt-bytes/rich.vtt
           git check-attr text -- tests/fixtures/bom_crlf.srt evals/fixtures/task-vtt-bytes/rich.vtt
           head -c 8 tests/fixtures/bom_crlf.srt | od -An -c
-          uv run --no-project python -c "import sys, locale, unicodedata; print(sys.version); print('unicodedata', unicodedata.unidata_version); print('preferred encoding', locale.getpreferredencoding(False), 'utf8_mode', sys.flags.utf8_mode, 'stdout', sys.stdout.encoding)"
-      - name: install the locked dev environment
+          python -c "import sys, locale, unicodedata; print('unicodedata', unicodedata.unidata_version); print('preferred encoding', locale.getpreferredencoding(False), 'utf8_mode', sys.flags.utf8_mode, 'stdout', sys.stdout.encoding)"
+      - name: install pytest
         timeout-minutes: 5
-        run: uv sync --locked
+        run: |
+          python -m pip install --only-binary=:all: "pytest==9.2.0"
+          python -m pip list
       - name: tests
         timeout-minutes: 5
-        run: uv run pytest -q </dev/null
-      - name: every bundled script answers --help
+        run: python -m pytest -rA --tb=short </dev/null
+      - name: the bundled script answers --help
         timeout-minutes: 3
-        run: |
-          for f in skills/*/scripts/*.py; do
-            case "$(basename "$f")" in _*) continue ;; esac
-            uv run python "$f" --help > /dev/null < /dev/null
-          done
-  spec:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: false
-      - name: Agent Skills spec (skills-ref, pinned)
-        timeout-minutes: 5
-        run: |
-          for d in skills/*/; do
-            uvx --from "git+https://github.com/agentskills/agentskills@83021e2be457a9b6679148719c1f6074f0ad975e#subdirectory=skills-ref" \
-              skills-ref validate "$d"
-          done
-      - name: plugin manifests are valid JSON with matching names
-        timeout-minutes: 2
-        run: |
-          python3 - <<'PY'
-          import json, pathlib
-          plugin = json.loads(pathlib.Path(".claude-plugin/plugin.json").read_text(encoding="utf-8"))
-          market = json.loads(pathlib.Path(".claude-plugin/marketplace.json").read_text(encoding="utf-8"))
-          skills = sorted(p.name for p in pathlib.Path("skills").iterdir() if p.is_dir())
-          assert skills == [plugin["name"]], (skills, plugin["name"])
-          assert [p["name"] for p in market["plugins"]] == [plugin["name"]]
-          print("manifests ok:", plugin["name"], plugin["version"])
-          PY
+        run: python skills/subtitle-cue-guard/scripts/cue_guard.py --help > /dev/null </dev/null

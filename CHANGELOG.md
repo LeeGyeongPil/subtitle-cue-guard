@@ -3,6 +3,15 @@
 All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.1.3] - 2026-11-23
+
+### Changed
+- CI: one job on Python 3.10 and 3.14 with `actions/checkout@v5`, `actions/setup-python@v6` and pytest from pip (uv removed). README local development uses `uv sync && uv run pytest -q`; CI installs pytest with pip.
+- README: eval table refreshed with the latest measurement (mean score gain +0.47).
+
+### Known limits
+- The `task-fps-retime` eval also passes without the skill, so it does not measure the script's value.
+
 ## [0.1.2] - 2026-11-23
 
 ### Changed

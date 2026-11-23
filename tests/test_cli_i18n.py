@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-from conftest import EX, FIX, SCRIPT, cg, jwrite, write
+from conftest import EX, FIX, SCRIPT, cg, child_env, jwrite, write
 
 
 def test_message_keys_equal():
@@ -28,10 +28,10 @@ def test_every_issue_code_has_messages():
 @pytest.mark.parametrize("env,cli_lang,expected", [
     ({}, None, "en"),
     ({"LANG": "ko_KR.UTF-8"}, None, "ko"),
-    ({"LANG": "ko_KR.UTF-8", "LC_ALL": "en_US.UTF-8"}, None, "en"),
-    ({"LANG": "en_US.UTF-8", "LC_MESSAGES": "ko_KR.UTF-8"}, None, "ko"),
+    ({"LANG": "ko_KR.UTF-8", "LC_ALL": "en_GB.UTF-8"}, None, "en"),
+    ({"LANG": "en_GB.UTF-8", "LC_MESSAGES": "ko_KR.UTF-8"}, None, "ko"),
     ({"LC_ALL": "ko_KR.UTF-8", "SUBTITLE_CUE_GUARD_LANG": "en"}, None, "en"),
-    ({"SUBTITLE_CUE_GUARD_LANG": "ko", "LC_ALL": "en_US.UTF-8"}, None, "ko"),
+    ({"SUBTITLE_CUE_GUARD_LANG": "ko", "LC_ALL": "en_GB.UTF-8"}, None, "ko"),
     ({"SUBTITLE_CUE_GUARD_LANG": "ko"}, "en", "en"),
     ({"LANG": "ja_JP.UTF-8"}, None, "en"),
     ({"LANG": "C"}, "ko", "ko"),
@@ -134,11 +134,10 @@ def test_usage_errors_exit_2(cli):
 
 
 def test_real_process_smoke(tmp_path):
-    env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"}
     proc = subprocess.run([sys.executable, str(SCRIPT), "check", str(EX / "sample.srt"), str(EX / "bad.ko.json"),
-                           "--target", "ko"], capture_output=True, encoding="utf-8", env=env,
+                           "--target", "ko"], capture_output=True, encoding="utf-8", env=child_env(LANG="C.UTF-8"),
                           stdin=subprocess.DEVNULL, timeout=120)
     assert proc.returncode == 1 and '"retry": ["1", "2", "3"]' in proc.stdout
-    proc = subprocess.run([sys.executable, str(SCRIPT), "--help"], capture_output=True, encoding="utf-8", env=env,
+    proc = subprocess.run([sys.executable, str(SCRIPT), "--help"], capture_output=True, encoding="utf-8", env=child_env(LANG="C.UTF-8"),
                           stdin=subprocess.DEVNULL, timeout=120)
     assert proc.returncode == 0 and "usage" in proc.stdout.lower()

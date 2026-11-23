@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import EX, ROOT, SCRIPT
+from conftest import EX, ROOT, SCRIPT, child_env
 
 # 줄 끝·BOM 을 일부러 담은 픽스처 — 바이트가 바뀌면 바이트 비교 테스트와 평가 해시가 깨진다
 BYTE_EXACT = [ROOT / "tests" / "fixtures" / "bom_crlf.srt", ROOT / "evals" / "fixtures" / "task-vtt-bytes" / "rich.vtt"]
@@ -105,17 +105,59 @@ def test_dependencies_are_minimal():
 
 # ④ CI 워크플로 --------------------------------------------------------------------------
 
-def test_ci_workflow_matches_supported_pythons():
-    ci = read(ROOT / ".github" / "workflows" / "ci.yml")
+CI_FILE = ROOT / ".github" / "workflows" / "ci.yml"
+# 실행 중 외부에서 무언가를 받아 오거나 서드파티 서비스에 기대는 표현 — 주석을 뺀 줄에는 없어야 한다
+CI_FORBIDDEN = re.compile(r"setup-uv|(?<![\w.-])uv\s|uvx|cache|git\+https|curl|wget|secrets\.|--cov|schedule")
+
+
+def _ci_lines() -> list[str]:
+    """ci.yml lines without comments and blank lines."""
+    return [line for line in read(CI_FILE).splitlines() if line.strip() and not line.lstrip().startswith("#")]
+
+
+def _uses(lines: list[str]) -> list[str]:
+    return [m.group(1) for line in lines if (m := re.match(r"\s*-?\s*uses:\s*(\S+)", line))]
+
+
+def test_ci_workflow_is_minimal():
+    """One job, two official actions, pip-installed pytest, the oldest supported Python in the matrix."""
+    lines = _ci_lines()
+    text = "\n".join(lines)
+    assert sorted(_uses(lines)) == ["actions/checkout@v5", "actions/setup-python@v6"], _uses(lines)
+
+    jobs = text.split("\njobs:\n", 1)[1]
+    assert re.findall(r"(?m)^  ([\w-]+):\s*$", jobs) == ["test"], "ci.yml must define exactly one job: test"
+    assert re.search(r"(?m)^    runs-on: ubuntu-24\.04$", jobs)
+    assert re.search(r"(?m)^    timeout-minutes: \d+$", jobs)
+    assert re.search(r"(?m)^      fail-fast: false$", jobs)
+
+    head = text.split("\njobs:\n", 1)[0]
+    assert re.search(r"(?m)^permissions:\n  contents: read$", head), "top-level permissions must be contents: read"
+    triggers = re.search(r"(?m)^on:\n((?:  .*\n?)+)", head)
+    assert triggers and re.findall(r"(?m)^  ([\w_]+):", triggers.group(1)) == [
+        "push", "pull_request", "workflow_dispatch"], "triggers: push, pull_request, workflow_dispatch only"
+
     floor = _requires_python_floor(read(ROOT / "pyproject.toml"))
-    matrix = re.search(r"python:\s*\[([^\]]*)\]", ci)
-    assert matrix, "the scripts job needs a python matrix"
-    versions = re.findall(r'"([^"]+)"', matrix.group(1))
-    assert floor in versions, f"CI must test the oldest supported Python {floor}: {versions}"
-    assert "uv sync --locked" in ci
-    assert "--cov" not in ci
-    assert "git ls-files --eol" in ci, "keep the diagnostics step: it shows whether git rewrote the fixtures"
-    assert ci.count("timeout-minutes:") >= 2
+    matrix = re.search(r"python:\s*\[([^\]]*)\]", text)
+    assert matrix, "the job needs a python matrix"
+    assert re.findall(r'"([^"]+)"', matrix.group(1)) == [floor, "3.14"], matrix.group(1)
+
+    bad = [line.strip() for line in lines if CI_FORBIDDEN.search(line)]
+    assert bad == [], f"remove these from ci.yml (third-party services, caches, network fetches): {bad}"
+
+    assert re.search(r"(?s)diagnostics.*?continue-on-error: true.*?python --version.*?git ls-files --eol"
+                     r".*?git check-attr text.*?unicodedata", text), "keep the diagnostics step: it explains a failure"
+    assert re.search(r'(?m)^ +python -m pip install --only-binary=:all: "pytest==[\d.]+"$', text)
+    assert re.search(r"(?m)^ +python -m pip list$", text)
+    assert re.search(r"(?m)^ +run: python -m pytest -rA --tb=short </dev/null$", text)
+    assert re.search(r"(?m)^ +run: python skills/subtitle-cue-guard/scripts/cue_guard\.py --help ", text)
+
+
+def test_ci_pytest_pin_matches_lock():
+    lock = re.search(r'name = "pytest"\nversion = "([^"]+)"', read(ROOT / "uv.lock"))
+    pin = re.search(r'pytest==([\d.]+)"', read(CI_FILE))
+    assert lock and pin, "uv.lock and ci.yml must both pin pytest"
+    assert pin.group(1) == lock.group(1), f"CI installs pytest {pin.group(1)} but uv.lock has {lock.group(1)}"
 
 
 # ⑤ SKILL.md frontmatter — skills-ref(83021e2) validator 규칙의 오프라인 미러 ---------------
@@ -220,11 +262,10 @@ def test_fixture_characters_are_assigned_in_this_python():
 # ⑧ 나쁜 환경(ASCII 로캘·UTF-8 모드 끔·강제 색)의 실제 프로세스 ---------------------------------
 
 def _hostile_run(*args: str) -> "subprocess.CompletedProcess[bytes]":
-    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "LC_ALL": "C", "LANG": "C",
-           "PYTHONCOERCECLOCALE": "0", "FORCE_COLOR": "1"}
     # 출력은 바이트로 받아 직접 UTF-8 로 푼다 — 부모 프로세스의 로캘에 기대지 않는다
-    return subprocess.run([sys.executable, "-X", "utf8=0", str(SCRIPT), *args], capture_output=True, env=env,
-                          cwd=str(ROOT), stdin=subprocess.DEVNULL, timeout=120)
+    return subprocess.run([sys.executable, "-X", "utf8=0", str(SCRIPT), *args], capture_output=True,
+                          env=child_env(LC_ALL="C", LANG="C", PYTHONCOERCECLOCALE="0", FORCE_COLOR="1"), cwd=str(ROOT),
+                          stdin=subprocess.DEVNULL, timeout=120)
 
 
 def test_cli_under_ascii_locale_and_forced_colour():
@@ -270,6 +311,79 @@ def test_child_processes_cannot_hang():
     """A child that waits on stdin or never exits stalls the CI job until its timeout with no useful log."""
     found = [hit for path in sorted((ROOT / "tests").glob("*.py")) for hit in _unbounded_subprocess_calls(path)]
     assert found == [], "pass stdin=subprocess.DEVNULL and timeout=...: " + ", ".join(found)
+
+
+# ⑩ 플랫폼 결정성 정적 감사 — 자식 프로세스·플랫폼 의존 API ------------------------------------
+
+def _test_sources() -> list[Path]:
+    return sorted((ROOT / "tests").glob("*.py"))
+
+
+def _subprocess_calls(path: Path):
+    for node in ast.walk(ast.parse(read(path), str(path))):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name) and node.func.value.id == "subprocess"
+                and node.func.attr in SUBPROCESS_CALLS):
+            yield node
+
+
+def _first_command_word(call: ast.Call):
+    arg = call.args[0] if call.args else None
+    if isinstance(arg, (ast.List, ast.Tuple)) and arg.elts:
+        return arg.elts[0]
+    return None
+
+
+def _child_process_violations(path: Path) -> list[str]:
+    """Children must start sys.executable or git, and take their environment only from child_env()."""
+    found = []
+    for call in _subprocess_calls(path):
+        where = f"{path.name}:{call.lineno}"
+        first = _first_command_word(call)
+        is_python = (isinstance(first, ast.Attribute) and isinstance(first.value, ast.Name)
+                     and first.value.id == "sys" and first.attr == "executable")
+        is_git = isinstance(first, ast.Constant) and first.value == "git"
+        if not (is_python or is_git):
+            found.append(f"{where} first argument must be sys.executable or 'git'")
+        env = next((k.value for k in call.keywords if k.arg == "env"), None)
+        if env is not None and not (isinstance(env, ast.Call) and isinstance(env.func, ast.Name)
+                                    and env.func.id == "child_env"):
+            found.append(f"{where} env= must be child_env(...)")
+    return found
+
+
+def test_child_processes_start_only_python_or_git_with_a_clean_env():
+    found = [hit for path in _test_sources() for hit in _child_process_violations(path)]
+    assert found == [], "see tests/conftest.py child_env: " + ", ".join(found)
+
+
+# 이 파일은 금지 목록을 적어 두므로 리터럴 검사에서만 뺀다
+PLATFORM_LITERALS = ("/usr" + "/bin", "en_US" + ".UTF-8")
+FORBIDDEN_ATTRS = {"chmod", "symlink", "symlink_to", "tzset", "isatty", "getuid", "geteuid", "setlocale"}
+FORBIDDEN_MODULES = {"time", "datetime", "socket", "urllib", "http", "requests"}
+
+
+def _platform_violations(path: Path, check_literals: bool) -> list[str]:
+    found = []
+    for node in ast.walk(ast.parse(read(path), str(path))):
+        where = f"{path.name}:{getattr(node, 'lineno', 0)}"
+        if isinstance(node, ast.Attribute) and node.attr in FORBIDDEN_ATTRS:
+            found.append(f"{where} .{node.attr}")
+        elif isinstance(node, ast.Name) and node.id in FORBIDDEN_ATTRS:
+            found.append(f"{where} {node.id}")
+        elif isinstance(node, ast.Import):
+            found += [f"{where} import {a.name}" for a in node.names if a.name.split(".")[0] in FORBIDDEN_MODULES]
+        elif isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] in FORBIDDEN_MODULES:
+            found.append(f"{where} from {node.module} import")
+        elif check_literals and isinstance(node, ast.Constant) and isinstance(node.value, str):
+            found += [f"{where} literal {lit!r}" for lit in PLATFORM_LITERALS if lit in node.value]
+    return found
+
+
+def test_tests_avoid_platform_dependent_apis():
+    """Permissions, symlinks, the clock, the time zone, TTYs, user ids, the network and OS locale names differ per runner."""
+    found = [hit for path in _test_sources() for hit in _platform_violations(path, path.name != Path(__file__).name)]
+    assert found == [], "remove or replace: " + ", ".join(found)
 
 
 def _workflow_steps(ci: str) -> list[str]:

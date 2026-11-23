@@ -27,7 +27,7 @@ It does not judge translation quality. A `suspect` finding is a guess, not proof
 
 **Other agents that read the Agent Skills standard** — copy `skills/subtitle-cue-guard` into the agent's skills folder. Only Claude Code is verified (see the table below).
 
-Requirements: Python 3.10 or newer (`python3 --version`). No packages, no network access. To run the development tests you also need [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`). Without agent: clone the repository and call the script directly, as in the examples below.
+Requirements: Python 3.10 or newer (`python3 --version`). No packages, no network access. To run the development tests you also need [pytest](https://docs.pytest.org/) (`uv sync` installs it; install uv with `curl -LsSf https://astral.sh/uv/install.sh | sh`). Without agent: clone the repository and call the script directly, as in the examples below.
 
 ```
 git clone https://github.com/LeeGyeongPil/subtitle-cue-guard
@@ -149,7 +149,7 @@ Meanings: `skills/subtitle-cue-guard/references/issue-codes.md`.
 | Stays quiet when it should not | 12/12 |
 | Tasks solved with the skill | 6/6 |
 | Tasks solved without it (baseline) | 2/6 |
-| Mean score gain (Δ) | +0.49 |
+| Mean score gain (Δ) | +0.47 |
 | Tasks that catch a broken script | 5/6 |
 | Codex CLI | not verified |
 
@@ -187,10 +187,10 @@ It is the wrong tool for speech-to-text (use a transcription tool such as [Whisp
 ## Development
 
 ```
-uv sync && uv run pytest -q
+uv sync && uv run pytest -q   # CI installs pytest with pip instead
 ```
 
-`evals/` holds trigger cases (should and should not start the skill) and six task cases with graders and fixtures; `tests/test_evals_manifest.py` checks that every grader matches the real script output. The only dev dependency is pytest. `.gitattributes` checks ordinary text files out with LF, and marks `*.srt`, `*.vtt` and the fixture folders `-text` so Git never converts their bytes (CRLF, BOM, missing final newline stay as written) on any OS checkout, and `tests/test_ci_robustness.py` guards that setup.
+`evals/` holds trigger cases (should and should not start the skill) and six task cases with graders and fixtures; `tests/test_evals_manifest.py` checks that every grader matches the real script output. The only dev dependency is pytest. CI (`.github/workflows/ci.yml`) runs these tests on Python 3.10 and 3.14 with pytest installed from pip. `.gitattributes` checks ordinary text files out with LF, and marks `*.srt`, `*.vtt` and the fixture folders `-text` so Git never converts their bytes (CRLF, BOM, missing final newline stay as written) on any OS checkout, and `tests/test_ci_robustness.py` guards that setup.
 
 ## License
 
