@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.1.5] - 2026-11-23
+
+### Changed
+- README: verification table in both languages replaced with the generated table (mean score gain +0.47). Docs only.
+
 ## [0.1.4] - 2026-11-23
 
 ### Changed
