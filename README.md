@@ -149,7 +149,7 @@ Meanings: `skills/subtitle-cue-guard/references/issue-codes.md`.
 | Stays quiet when it should not | 12/12 |
 | Tasks solved with the skill | 6/6 |
 | Tasks solved without it (baseline) | 2/6 |
-| Mean score gain (Δ) | +0.49 |
+| Mean score gain (Δ) | +0.47 |
 | Tasks that catch a broken script | 5/6 |
 | Codex CLI | not verified |
 
